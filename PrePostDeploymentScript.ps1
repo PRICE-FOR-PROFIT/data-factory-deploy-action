@@ -136,6 +136,15 @@ function Get-SortedLinkedServices {
 
 $templateJson = Get-Content $armTemplate | ConvertFrom-Json
 $resources = $templateJson.resources
+# Append sub-templates
+foreach($template in $templateJson.resources){
+    if ($template.type -eq "Microsoft.Resources/deployments"){
+        $uri = $template.properties.templateLink.uri
+        $subTemplate = $uri.split(",")[1].Trim().Replace("'","").Replace("/","")
+        $subTemplateJson = Get-Content ($armTemplate.Replace('ArmTemplate_master.json', $subTemplate)) | ConvertFrom-Json
+        $resources += $subTemplateJson.resources
+    }
+}
 
 #Triggers 
 Write-Host "Getting triggers"
