@@ -29,8 +29,21 @@ runs:
   using: 'composite'
   steps:
     - name: Install Az PowerShell module
-      run: if('${{ inputs.skipAzModuleInstallation }}' -ne 'true') { Install-Module -Name Az -RequiredVersion 11.3.0 -Scope CurrentUser -Repository PSGallery -Force }
       shell: pwsh
+      run: |
+        if ('${{ inputs.skipAzModuleInstallation }}' -ne 'true') {
+          $maxAttempts = 5
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            try {
+              Install-Module -Name Az -RequiredVersion 11.3.0 -Scope CurrentUser -Repository PSGallery -Force:($i -eq 1)
+              break
+            } catch {
+              if ($i -eq $maxAttempts) { throw }
+              Write-Warning "Install-Module Az failed (attempt $i/$maxAttempts): $_. Retrying in 10s..."
+              Start-Sleep -Seconds 10
+            }
+          }
+        }
 
     - name: Run Pre-deployment script
       run: |
